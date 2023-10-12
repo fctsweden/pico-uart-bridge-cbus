@@ -42,6 +42,7 @@ typedef struct {
 	uint8_t usb_buffer[BUFFER_SIZE];
 	uint32_t usb_pos;
 	mutex_t usb_mtx;
+	int txIdleCounter;
 } uart_data_t;
 
 void uart0_irq_fn(void);
@@ -232,11 +233,14 @@ void uart1_irq_fn(void)
 void uart_write_bytes(uint8_t itf)
 {
 	uart_data_t *ud = &UART_DATA[itf];
-
+	const uart_id_t *ui = &UART_ID[itf];
+	ud->txIdleCounter++;
 	if (ud->usb_pos &&
 	    mutex_try_enter(&ud->usb_mtx, NULL)) {
-		const uart_id_t *ui = &UART_ID[itf];
 		uint32_t count = 0;
+		ud->txIdleCounter=0;
+		/* Pinmux. Before transmitt, make sure we're in uart mode on tx pin */
+		gpio_set_function(ui->tx_pin, GPIO_FUNC_UART);
 
 		while (uart_is_writable(ui->inst) &&
 		       count < ud->usb_pos) {
@@ -251,13 +255,19 @@ void uart_write_bytes(uint8_t itf)
 
 		mutex_exit(&ud->usb_mtx);
 	}
+	if (ud->txIdleCounter>1000) {
+		//timeout after roughly 2ms and switch the tx pin to input
+		gpio_set_function(ui->tx_pin, GPIO_FUNC_SIO);
+		gpio_set_dir(ui->tx_pin, GPIO_IN);
+		gpio_pull_up(ui->tx_pin);
+	}
 }
 
 void init_uart_data(uint8_t itf)
 {
 	const uart_id_t *ui = &UART_ID[itf];
 	uart_data_t *ud = &UART_DATA[itf];
-
+	ud->txIdleCounter=0;
 	/* Pinmux */
 	gpio_set_function(ui->tx_pin, GPIO_FUNC_UART);
 	gpio_set_function(ui->rx_pin, GPIO_FUNC_UART);
