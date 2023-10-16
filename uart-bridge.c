@@ -271,6 +271,7 @@ void init_uart_data(uint8_t itf)
 	/* Pinmux */
 	gpio_set_function(ui->tx_pin, GPIO_FUNC_UART);
 	gpio_set_function(ui->rx_pin, GPIO_FUNC_UART);
+	gpio_set_pulls(ui->rx_pin, false, false);
 
 	/* USB CDC LC */
 	ud->usb_lc.bit_rate = DEF_BIT_RATE;
