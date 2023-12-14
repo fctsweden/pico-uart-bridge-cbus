@@ -255,7 +255,7 @@ void uart_write_bytes(uint8_t itf)
 
 		mutex_exit(&ud->usb_mtx);
 	}
-	if (ud->txIdleCounter>1000) {
+	if (ud->txIdleCounter>100) {
 		//timeout after roughly 2ms and switch the tx pin to input
 		gpio_set_function(ui->tx_pin, GPIO_FUNC_SIO);
 		gpio_set_dir(ui->tx_pin, GPIO_IN);
