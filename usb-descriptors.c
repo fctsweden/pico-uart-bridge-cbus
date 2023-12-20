@@ -77,7 +77,7 @@ static char usbd_serial[USBD_STR_SERIAL_LEN] = "000000000000";
 
 static const char *const usbd_desc_str[] = {
 	[USBD_STR_MANUF] = "Raspberry Pi",
-	[USBD_STR_PRODUCT] = "Pico",
+	[USBD_STR_PRODUCT] = "Pico cbus",
 	[USBD_STR_SERIAL] = usbd_serial,
 	[USBD_STR_CDC] = "Board CDC",
 };
