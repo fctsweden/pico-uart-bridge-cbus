@@ -24,6 +24,10 @@
 #define DEF_PARITY 0
 #define DEF_DATA_BITS 8
 
+//if this pin is low, the RX pin is disabled when transmitting.
+//defaults to high by the internal pull-up
+#define ECHO_ON_PIN 6
+
 typedef struct {
 	uart_inst_t *const inst;
 	uint irq;
@@ -242,6 +246,12 @@ void uart_write_bytes(uint8_t itf)
 		/* Pinmux. Before transmitt, make sure we're in uart mode on tx pin */
 		gpio_set_function(ui->tx_pin, GPIO_FUNC_UART);
 
+		if (!gpio_get(ECHO_ON_PIN)) {
+			//echo is off, so we need to disable the RX pin
+			gpio_set_function(ui->rx_pin, GPIO_FUNC_SIO);
+			gpio_set_dir(ui->rx_pin, GPIO_IN);
+		}
+
 		while (uart_is_writable(ui->inst) &&
 		       count < ud->usb_pos) {
 			uart_putc_raw(ui->inst, ud->usb_buffer[count]);
@@ -260,6 +270,10 @@ void uart_write_bytes(uint8_t itf)
 		gpio_set_function(ui->tx_pin, GPIO_FUNC_SIO);
 		gpio_set_dir(ui->tx_pin, GPIO_IN);
 		gpio_pull_up(ui->tx_pin);
+
+		//in case we're in not in echo mode, rx is disabled and we need to enable the RX pin again
+		if (gpio_get_function(ui->rx_pin) != GPIO_FUNC_UART)
+			gpio_set_function(ui->rx_pin, GPIO_FUNC_UART);
 	}
 }
 
@@ -321,6 +335,10 @@ int main(void)
 
 	gpio_init(LED_PIN);
 	gpio_set_dir(LED_PIN, GPIO_OUT);
+
+	gpio_set_function(ECHO_ON_PIN, GPIO_FUNC_SIO);
+	gpio_set_dir(ECHO_ON_PIN, GPIO_IN);
+	gpio_pull_up(ECHO_ON_PIN);
 
 	multicore_launch_core1(core1_entry);
 
